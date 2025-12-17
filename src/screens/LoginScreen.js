@@ -1,8 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
-import Button from "../components/Button";
-import Input from "../components/Input";
-import colors from "../constants/colors";
+import { View, Text, StyleSheet } from "react-native";
+import AppInput from "../components/AppInput";
+import AppButton from "../components/AppButton";
+import { useState } from "react";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -10,28 +9,12 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bicycle Manager</Text>
-      <Text style={styles.subtitle}>Login to continue</Text>
+      <Text style={styles.title}>Welcome</Text>
 
-      <View style={styles.card}>
-        <Input
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-        />
+      <AppInput placeholder="Email" value={email} onChangeText={setEmail} />
+      <AppInput placeholder="Password" secure value={password} onChangeText={setPassword} />
 
-        <Input
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-
-        <Button
-          title="Login"
-          onPress={() => navigation.replace("Dashboard")}
-        />
-      </View>
+      <AppButton title="Login" onPress={() => navigation.replace("MainTabs")} />
     </View>
   );
 }
@@ -39,30 +22,13 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-    padding: 20,
     justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#fff",
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 6,
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
     marginBottom: 30,
-    color: colors.subtext,
-  },
-  card: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 15,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
   },
 });
