@@ -1,30 +1,18 @@
-// BicycleCard.jsx
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-
-const COLORS = {
-  primary: "#00BFA6",
-  primaryDark: "#00897B",
-  card: "#FFFFFF",
-  textMain: "#222222",
-  textSecondary: "#666666",
-  available: "#2E7D32",
-  booked: "#C62828",
-};
+import { COLORS } from "../constants/theme";
 
 export default function BicycleCard({ bike, onPress }) {
   const isAvailable = bike.status === "Available";
 
   return (
     <View style={styles.card}>
-      {/* LEFT: circle with bike number */}
       <View style={styles.left}>
         <View style={styles.numberCircle}>
           <Text style={styles.numberText}>{bike.number}</Text>
         </View>
       </View>
 
-      {/* MIDDLE: title + status */}
       <View style={styles.middle}>
         <Text style={styles.title}>Bicycle #{bike.number}</Text>
 
@@ -41,7 +29,6 @@ export default function BicycleCard({ bike, onPress }) {
         </View>
       </View>
 
-      {/* RIGHT: Book button */}
       <View style={styles.right}>
         <TouchableOpacity
           style={[
@@ -64,7 +51,7 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.card,       // here you can later add backgroundImage via ImageBackground
+    backgroundColor: COLORS.card,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 18,
@@ -82,7 +69,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#E0F7F4",        // soft teal
+    backgroundColor: "#E0F7F4",
     justifyContent: "center",
     alignItems: "center",
   },

@@ -1,9 +1,11 @@
+// src/navigation/TabNavigator.js
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import HomeScreen from "../screens/HomeScreen";
-import PaymentScreen from "../screens/PaymentScreen";
-import ReportIssueScreen from "../screens/ReportIssueScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+
+import HomeStackNavigator from "./HomeStackNavigator";
+import MaintenanceScreen from "../screens/MaintenanceScreen";
+import ComplaintsScreen from "../screens/ComplaintsScreen";   // change later to real ComplaintsScreen
+import SettingsScreen from "../screens/SettingsScreen ";     // change later to real SettingsScreen
 
 const Tab = createBottomTabNavigator();
 
@@ -13,27 +15,47 @@ export default function TabNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: { height: 60 },
+        tabBarLabelStyle: { fontSize: 12 },
       }}
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
-        options={{ tabBarIcon: () => <Ionicons name="bicycle" size={22} /> }}
+        component={HomeStackNavigator}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bicycle" size={size} color={color} />
+          ),
+        }}
       />
+
       <Tab.Screen
-        name="Report"
-        component={ReportIssueScreen}
-        options={{ tabBarIcon: () => <Ionicons name="alert-circle-outline" size={22} /> }}
+        name="Maintenance"
+        component={MaintenanceScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="construct-outline" size={size} color={color} />
+          ),
+        }}
       />
+
       <Tab.Screen
-        name="Payments"
-        component={PaymentScreen}
-        options={{ tabBarIcon: () => <Ionicons name="card-outline" size={22} /> }}
+        name="Complaints"
+        component={ComplaintsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles-outline" size={size} color={color} />
+          ),
+        }}
       />
+
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ tabBarIcon: () => <Ionicons name="person-outline" size={22} /> }}
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );
