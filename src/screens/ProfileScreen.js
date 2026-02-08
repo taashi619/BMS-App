@@ -1,4 +1,3 @@
-// src/screens/ProfileScreen.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -10,6 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { COLORS } from "../constants/theme";
+import Screen from "../components/Screenhy";
 
 export default function ProfileScreen() {
   // TODO: replace with data from backend (GET /me)
@@ -57,6 +57,7 @@ export default function ProfileScreen() {
   };
 
   return (
+    <Screen>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={{ paddingBottom: 32 }}
@@ -159,6 +160,7 @@ export default function ProfileScreen() {
         <Text style={styles.saveText}>Save changes</Text>
       </TouchableOpacity>
     </ScrollView>
+    </Screen>
   );
 }
 

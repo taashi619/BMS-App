@@ -1,4 +1,3 @@
-// src/screens/SettingsScreen.js
 import React from "react";
 import {
   View,
@@ -10,10 +9,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../constants/theme";
-
+import Screen from "../components/Screenhy";
 export default function SettingsScreen({ navigation }) {
   const handleFeedback = () => navigation.navigate("Complaints");
-  const handleChangePassword = () => {};
+  const handleChangePassword = () => navigation.navigate("ChangePassword");
   const handleDeleteAccount = () => {};
   const handleLogout = () => {
     navigation.reset({ index: 0, routes: [{ name: "Login" }] });
@@ -24,6 +23,7 @@ export default function SettingsScreen({ navigation }) {
   const stats = { totalBookings: 8, activeFines: 1 };
 
   return (
+    <Screen>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={{ paddingBottom: 32 }}
@@ -71,11 +71,11 @@ export default function SettingsScreen({ navigation }) {
 
       {/* main actions */}
       <View style={styles.section}>
-        <SettingsItem
+        {/* <SettingsItem
           icon="chatbox-ellipses-outline"
           label="Feedback"
           onPress={handleFeedback}
-        />
+        /> */}
         <SettingsItem
           icon="lock-closed-outline"
           label="Change password"
@@ -84,12 +84,12 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <View style={styles.section}>
-        <SettingsItem
+        {/* <SettingsItem
           icon="person-remove-outline"
           label="Delete account"
           onPress={handleDeleteAccount}
           danger
-        />
+        /> */}
         <SettingsItem
           icon="log-out-outline"
           label="Log out"
@@ -110,6 +110,7 @@ export default function SettingsScreen({ navigation }) {
 
       <Text style={styles.versionText}>Version 1.0.0</Text>
     </ScrollView>
+    </Screen>
   );
 }
 
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
 
   headerCard: {
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop:25,
     marginBottom: 20,
     borderRadius: 24,
     padding: 16,

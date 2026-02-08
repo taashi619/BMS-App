@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/theme";
-
+import Screen from "../components/Screenhy";
 export default function ComplaintsScreen() {
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null); // { uri }
@@ -57,6 +57,7 @@ export default function ComplaintsScreen() {
   };
 
   return (
+    <Screen>
     <View style={styles.screen}>
       <Text style={styles.title}>Submit a complaint</Text>
 
@@ -86,6 +87,7 @@ export default function ComplaintsScreen() {
         <Text style={styles.submitText}>Submit complaint</Text>
       </TouchableOpacity>
     </View>
+    </Screen>
   );
 }
 

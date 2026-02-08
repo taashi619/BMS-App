@@ -1,4 +1,3 @@
-// src/screens/MaintenanceScreen.js
 import React, { useState } from "react";
 import {
   View,
@@ -11,7 +10,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/theme";
-
+import Screen from "../components/Screenhy";
 export default function MaintenanceScreen() {
   const [bikeNumber, setBikeNumber] = useState("");
   const [description, setDescription] = useState("");
@@ -61,6 +60,7 @@ export default function MaintenanceScreen() {
   };
 
   return (
+    <Screen>
     <View style={styles.screen}>
       <Text style={styles.title}>Report maintenance issue</Text>
 
@@ -99,6 +99,7 @@ export default function MaintenanceScreen() {
         <Text style={styles.submitText}>Submit issue</Text>
       </TouchableOpacity>
     </View>
+    </Screen>
   );
 }
 

@@ -1,4 +1,3 @@
-// src/constants/theme.js
 export const COLORS = {
   primary: "#17b09c",
   primaryDark: "#00897B",

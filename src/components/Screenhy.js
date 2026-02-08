@@ -1,4 +1,3 @@
-// src/components/Screen.js
 import React from "react";
 import { SafeAreaView, StyleSheet, Platform, StatusBar } from "react-native";
 import { COLORS } from "../constants/theme";
