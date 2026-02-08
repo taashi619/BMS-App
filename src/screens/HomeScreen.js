@@ -1,32 +1,66 @@
-import React,{ useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
   Image,
-  TouchableOpacity,
+  ActivityIndicator,
+  TouchableOpacity
 } from "react-native";
 import BicycleCard from "../components/BicycleCard";
 import { COLORS } from "../constants/theme";
 import Screen from "../components/Screenhy";
 import ProfileMenu from "../components/ProfileMenu";
-const MOCK_BICYCLES = [
-  { id: "1", number: 101, status: "Available", distance: "150 m" },
-  { id: "2", number: 102, status: "Booked", distance: "320 m" },
-  { id: "3", number: 103, status: "Available", distance: "480 m" },
-];
+import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 
 export default function HomeScreen({ navigation }) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [bicycles, setBicycles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
+  const { user } = useAuth();
+  const firstName = user?.firstName  || "Student";
+  const lastName = user?.lastName  || "";
+  useEffect(() => {
+    const fetchBicycles = async () => {
+      try {
+        const res = await api.get("/bicycles", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // { id, bicycleNumber, status, ... }
+        const backendBikes = res.data;
+
+        // map to the shape your UI expects
+        const mapped = backendBikes.map((b) => ({
+          id: String(b.id),
+          number: b.bicycleNumber,
+          status: b.status === "AVAILABLE" ? "Available" : b.status,
+        }));
+
+        setBicycles(mapped);
+      } catch (err) {
+        console.log("FETCH BICYCLES ERROR:", err?.response?.data || err.message);
+        Alert.alert("Error", "Could not load bicycles");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBicycles();
+  }, [token]);
+
   const handleSeeAll = () => {
-    navigation.navigate("AllBicycles", { bicycles: MOCK_BICYCLES });
+    navigation.navigate("AllBicycles", { bicycles });
   };
 
   const handlePressBike = (bike) => {
     navigation.navigate("Booking", { bike });
   };
-const openMenu = () => setMenuVisible(true);
+  const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
   const goToProfile = () => {
@@ -36,7 +70,7 @@ const openMenu = () => setMenuVisible(true);
 
   const goToBookings = () => {
     closeMenu();
-    navigation.navigate("MyBookings"); // create this screen in your navigator
+    navigation.navigate("MyBookings");
   };
   return (
     <Screen>
@@ -65,7 +99,7 @@ const openMenu = () => setMenuVisible(true);
         {/* header */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greeting}>Hello John,</Text>
+            <Text style={styles.greeting}>Hello {firstName} {lastName},</Text>
             <Text style={styles.subTitle}>Want to take a ride today?</Text>
           </View>
 
@@ -96,14 +130,23 @@ const openMenu = () => setMenuVisible(true);
         </View>
 
         {/* bicycle list */}
-        <FlatList
-          data={MOCK_BICYCLES}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 140 }}
-          renderItem={({ item }) => (
-            <BicycleCard bike={item} onPress={() => handlePressBike(item)} />
-          )}
-        />
+        {loading ? (
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        ) : (
+          <FlatList
+            data={bicycles}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 140 }}
+            renderItem={({ item }) => (
+              <BicycleCard bike={item} onPress={() => handlePressBike(item)} />
+            )}
+            ListEmptyComponent={
+              <Text style={{ color: COLORS.textSecondary }}>
+                No bicycles available.
+              </Text>
+            }
+          />
+        )}
       </View>
     </Screen>
   );
@@ -185,7 +228,7 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
     marginTop: 8,
     fontSize: 13,
-    marginBottom:8,
+    marginBottom: 8,
   },
   infoIcon: {
     width: 90,             // more space for icon

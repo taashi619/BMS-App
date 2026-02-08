@@ -10,6 +10,9 @@ import {
 } from "react-native";
 import { COLORS } from "../constants/theme";
 import Screen from "../components/Screenhy";
+import { useAuth } from "../context/AuthContext";
+import api from "../api/axios";
+import { Alert } from "react-native";
 
 export default function ProfileScreen() {
   // TODO: replace with data from backend (GET /me)
@@ -26,7 +29,7 @@ export default function ProfileScreen() {
       isResidential: true,
     },
   };
-
+  const { user,setUser,token  } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [faculty, setFaculty] = useState("");
@@ -35,15 +38,21 @@ export default function ProfileScreen() {
   const [isResidential, setIsResidential] = useState(true);
 
   useEffect(() => {
-    setFirstName(mockUser.firstName);
-    setLastName(mockUser.lastName);
-    setFaculty(mockUser.student.faculty || "");
-    setRoomNumber(mockUser.student.roomNumber || "");
-    setPhone(mockUser.student.phone || "");
-    setIsResidential(mockUser.student.isResidential);
-  }, []);
+    if (!user) return;
 
-  const handleSave = () => {
+    setFirstName(user.firstName || "");
+    setLastName(user.lastName || "");
+    setFaculty(user.student?.faculty || "");
+    setRoomNumber(user.student?.roomNumber || "");
+    setPhone(user.student?.phone || "");
+    setIsResidential(
+      user.student?.isResidential !== undefined
+        ? user.student.isResidential
+        : true
+    );
+  }, [user]);
+
+  const handleSave = async () => {
     const payload = {
       firstName,
       lastName,
@@ -53,90 +62,123 @@ export default function ProfileScreen() {
       isResidential,
     };
     console.log("PROFILE SAVE", payload);
-    // TODO: PUT /users/me and/or /students/me on backend
+    try {
+      const res = await api.put("/profile", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // if backend returns updated profile: { success, profile: { ... } }
+      if (res.data?.profile) {
+        // optional: update context user so Home/Profile show new data
+        if (res.data?.profile) {
+        setUser(res.data.profile);
+      }
+      }
+
+      Alert.alert("Saved", "Profile updated successfully");
+      console.log("PROFILE UPDATE RESPONSE:", res.data);
+    } catch (err) {
+      console.log("PROFILE UPDATE ERROR:", err?.response?.data || err.message);
+      const msg =
+        err?.response?.data?.message || "Could not update profile";
+      Alert.alert("Error", msg);
+    }
   };
+
+  if (!user) {
+    // optional: simple loading/empty state if profile not loaded yet
+    return (
+      <Screen>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ color: COLORS.textSecondary }}>Loading profile...</Text>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 32 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* header card */}
-      <View style={styles.headerCard}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarInitial}>
-            {firstName.charAt(0).toUpperCase()}
-          </Text>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* header card */}
+        <View style={styles.headerCard}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarInitial}>
+              {firstName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+
+          <View style={styles.headerText}>
+            <Text style={styles.nameText}>
+              {firstName} {lastName}
+            </Text>
+            <Text style={styles.emailText}>{user.email}</Text>
+            <Text style={styles.indexText}>Index: {user.student.indexNo}</Text>
+          </View>
         </View>
 
-        <View style={styles.headerText}>
-          <Text style={styles.nameText}>
-            {firstName} {lastName}
-          </Text>
-          <Text style={styles.emailText}>{mockUser.email}</Text>
-          <Text style={styles.indexText}>Index: {mockUser.student.indexNo}</Text>
+        {/* editable fields */}
+        <Text style={styles.sectionTitle}>Personal details</Text>
+
+        <View style={styles.rowInputs}>
+          <View style={[styles.inputGroup, { marginRight: 8 }]}>
+            <Text style={styles.label}>First name</Text>
+            <TextInput
+              style={styles.input}
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+          </View>
+
+          <View style={[styles.inputGroup, { marginLeft: 8 }]}>
+            <Text style={styles.label}>Last name</Text>
+            <TextInput
+              style={styles.input}
+              value={lastName}
+              onChangeText={setLastName}
+            />
+          </View>
         </View>
-      </View>
 
-      {/* editable fields */}
-      <Text style={styles.sectionTitle}>Personal details</Text>
-
-      <View style={styles.rowInputs}>
-        <View style={[styles.inputGroup, { marginRight: 8 }]}>
-          <Text style={styles.label}>First name</Text>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Phone</Text>
           <TextInput
             style={styles.input}
-            value={firstName}
-            onChangeText={setFirstName}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder="+44..."
           />
         </View>
 
-        <View style={[styles.inputGroup, { marginLeft: 8 }]}>
-          <Text style={styles.label}>Last name</Text>
+        <Text style={styles.sectionTitle}>Study details</Text>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Faculty</Text>
           <TextInput
             style={styles.input}
-            value={lastName}
-            onChangeText={setLastName}
+            value={faculty}
+            onChangeText={setFaculty}
+            placeholder="e.g. Computing"
           />
         </View>
-      </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Phone</Text>
-        <TextInput
-          style={styles.input}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          placeholder="+44..."
-        />
-      </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Room number</Text>
+          <TextInput
+            style={styles.input}
+            value={roomNumber}
+            onChangeText={setRoomNumber}
+            placeholder="e.g. B-204"
+          />
+        </View>
 
-      <Text style={styles.sectionTitle}>Study details</Text>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Faculty</Text>
-        <TextInput
-          style={styles.input}
-          value={faculty}
-          onChangeText={setFaculty}
-          placeholder="e.g. Computing"
-        />
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Room number</Text>
-        <TextInput
-          style={styles.input}
-          value={roomNumber}
-          onChangeText={setRoomNumber}
-          placeholder="e.g. B-204"
-        />
-      </View>
-
-      {/* <View style={styles.row}>
+        {/* <View style={styles.row}>
         <View>
           <Text style={styles.label}>Residential student</Text>
           <Text style={styles.helper}>
@@ -151,15 +193,15 @@ export default function ProfileScreen() {
         />
       </View> */}
 
-      <View style={styles.finesCard}>
-        <Text style={styles.finesLabel}>Total fines</Text>
-        <Text style={styles.finesValue}>£{mockUser.student.totalFines}</Text>
-      </View>
+        <View style={styles.finesCard}>
+          <Text style={styles.finesLabel}>Total fines</Text>
+          <Text style={styles.finesValue}>£{mockUser.student.totalFines}</Text>
+        </View>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveText}>Save changes</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <Text style={styles.saveText}>Save changes</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </Screen>
   );
 }

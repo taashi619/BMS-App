@@ -8,16 +8,27 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Alert
 } from "react-native";
 import { COLORS } from "../constants/theme";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { login, loading } = useAuth();
 
-  const handleLogin = () => {
-    // TODO: call backend, store token, then:
-    navigation.replace("MainTabs");
+  const handleLogin = async() => {
+    if (!email || !password) {
+      Alert.alert("Missing fields", "Please enter email and password");
+      return;
+    }
+    const result = await login(email, password);
+    if (result.success) {
+      navigation.replace("MainTabs", { role: result.role });
+    } else {
+      Alert.alert("Login failed", result.message);
+    }
   };
 
   const goToChangePassword = () => {
@@ -39,7 +50,6 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.appName}>Campus Bike</Text>
         <Text style={styles.appTagline}>Smart bicycle booking for students</Text>
       </View>
-
       {/* form */}
       <View style={styles.form}>
         <Text style={styles.welcome}>Welcome back</Text>
@@ -52,7 +62,6 @@ export default function LoginScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="you@student.uni.ac.uk"
-            keyboardType="email-address"
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
