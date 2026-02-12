@@ -1,4 +1,3 @@
-// src/screens/BookingScreen.js
 import React, { useState } from "react";
 import {
   View,
@@ -8,15 +7,55 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { COLORS } from "../constants/theme";
 import Screen from "../components/Screenhy";
-
+import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 export default function BookingScreen({ route, navigation }) {
   const { bike } = route.params;
   const [helmet, setHelmet] = useState(false);
   const [note, setNote] = useState("");
+const { token } = useAuth();
 
+  const handleConfirm = async () => {
+    if (!token) {
+      Alert.alert("Not logged in", "Please log in again.");
+      return;
+    }
+
+    try {
+      const payload = {
+        bicycleId: Number(bike.id) ?? Number(bike.bicycleId) ?? Number(bike.number),
+        helmetRequired: helmet,
+        note: note || undefined,
+      };
+
+      const res = await api.post("/bookings", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("BOOKING RESPONSE:", res.data);
+
+      Alert.alert("Success", "Booking successful", [
+        {
+          text: "OK",
+          onPress: () =>
+            navigation.replace("Countdown", {
+              booking: res.data.booking,
+            }),
+        },
+      ]);
+    } catch (err) {
+      console.log("BOOKING ERROR:", err?.response?.data || err.message);
+      const msg =
+        err?.response?.data?.message || "Could not create booking";
+      Alert.alert("Error", msg);
+    }
+  };
   return (
     <Screen>
       {/* translucent global background bike */}
@@ -62,7 +101,7 @@ export default function BookingScreen({ route, navigation }) {
         <View style={styles.buttonWrapper}>
           <TouchableOpacity
             style={[styles.bookButton, { backgroundColor: COLORS.primaryDark }]}
-            onPress={() => navigation.navigate("Countdown")}
+            onPress={handleConfirm}
           >
             <Text style={styles.text}>Confirm Booking</Text>
           </TouchableOpacity>

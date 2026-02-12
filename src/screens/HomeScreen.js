@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState,useCallback  } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -23,35 +24,43 @@ export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
   const firstName = user?.firstName  || "Student";
   const lastName = user?.lastName  || "";
-  useEffect(() => {
+ useFocusEffect(
+  useCallback(() => {
+    let isActive = true;
+
     const fetchBicycles = async () => {
       try {
+        setLoading(true);
         const res = await api.get("/bicycles", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        // { id, bicycleNumber, status, ... }
-        const backendBikes = res.data;
 
-        // map to the shape your UI expects
+        const backendBikes = res.data;
         const mapped = backendBikes.map((b) => ({
           id: String(b.id),
           number: b.bicycleNumber,
-          status: b.status === "AVAILABLE" ? "Available" : b.status,
+          status: b.status,
         }));
-
-        setBicycles(mapped);
+        if (isActive) {
+          setBicycles(mapped);
+        }
       } catch (err) {
-        console.log("FETCH BICYCLES ERROR:", err?.response?.data || err.message);
-        Alert.alert("Error", "Could not load bicycles");
+        console.log(
+          "FETCH BICYCLES ERROR:",
+          err?.response?.data || err.message
+        );
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     };
 
     fetchBicycles();
-  }, [token]);
+
+    return () => {
+      isActive = false;
+    };
+  }, [token])
+);
 
   const handleSeeAll = () => {
     navigation.navigate("AllBicycles", { bicycles });
@@ -134,7 +143,7 @@ export default function HomeScreen({ navigation }) {
           <ActivityIndicator size="large" color={COLORS.primary} />
         ) : (
           <FlatList
-            data={bicycles}
+            data={bicycles.slice(0, 4)} 
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingBottom: 140 }}
             renderItem={({ item }) => (

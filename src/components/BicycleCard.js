@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { COLORS } from "../constants/theme";
 
 export default function BicycleCard({ bike, onPress }) {
-  const isAvailable = bike.status === "Available";
+  const isAvailable = bike.status === "AVAILABLE";
 
   return (
     <View style={styles.card}>

@@ -12,10 +12,12 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/theme";
 import Screen from "../components/Screenhy";
+import { useAuth } from "../context/AuthContext";
+import api from "../api/axios";
 export default function ComplaintsScreen() {
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null); // { uri }
-
+  const { token } = useAuth();
   const handlePickImage = async () => {
     const { status } =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,59 +36,89 @@ export default function ComplaintsScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!description) {
-      Alert.alert("Missing info", "Please describe your complaint.");
+      Alert.alert("Missing info", "Please enter description.");
       return;
     }
 
-    const payload = {
-      description,
-      // backend fills userId from auth token
-      // status: NEW (default in schema)
-    };
+    if (!token) {
+      Alert.alert("Not logged in", "Please log in again.");
+      return;
+    }
 
-    console.log("Complaint payload", payload, photo);
+    try {
+      const formData = new FormData();
 
-    // TODO: POST to backend, e.g.
-    // await axios.post("/complaints", createFormData(payload, photo));
+      formData.append("description", description);
 
-    Alert.alert("Thank you", "Your complaint has been submitted.");
-    setDescription("");
-    setPhoto(null);
+      if (photo) {
+        const uriParts = photo.uri.split("/");
+        const fileName = uriParts[uriParts.length - 1];
+        const fileType = fileName.endsWith(".png")
+          ? "image/png"
+          : "image/jpeg";
+
+        formData.append("photo", {
+          uri: photo.uri,
+          name: fileName,
+          type: fileType,
+        });
+      }
+
+      const res = await api.post("/complain/report", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      Alert.alert("Thank you", "Your complaint has been submitted.");
+      setDescription("");
+      setPhoto(null);
+    } catch (err) {
+      console.log(
+        "Complain Error:",
+        err?.response?.data || err.message
+      );
+      const msg =
+        err?.response?.data?.message ||
+        "Could not submit complain request";
+      Alert.alert("Error", msg);
+    }
   };
 
   return (
     <Screen>
-    <View style={styles.screen}>
-      <Text style={styles.title}>Submit a complaint</Text>
+      <View style={styles.screen}>
+        <Text style={styles.title}>Submit a complaint</Text>
 
-      <Text style={styles.label}>What happened?</Text>
-      <TextInput
-        style={[styles.input, styles.textarea]}
-        placeholder="Describe your complaint in detail…"
-        multiline
-        value={description}
-        onChangeText={setDescription}
-      />
+        <Text style={styles.label}>What happened?</Text>
+        <TextInput
+          style={[styles.input, styles.textarea]}
+          placeholder="Describe your complaint in detail…"
+          multiline
+          value={description}
+          onChangeText={setDescription}
+        />
 
-      <Text style={styles.label}>Optional photo</Text>
-      <View style={styles.photoRow}>
-        <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
-          <Text style={styles.photoButtonText}>
-            {photo ? "Change photo" : "Add photo"}
-          </Text>
+        <Text style={styles.label}>Optional photo</Text>
+        <View style={styles.photoRow}>
+          <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
+            <Text style={styles.photoButtonText}>
+              {photo ? "Change photo" : "Add photo"}
+            </Text>
+          </TouchableOpacity>
+
+          {photo && (
+            <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
+          )}
+        </View>
+
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <Text style={styles.submitText}>Submit complaint</Text>
         </TouchableOpacity>
-
-        {photo && (
-          <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
-        )}
       </View>
-
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitText}>Submit complaint</Text>
-      </TouchableOpacity>
-    </View>
     </Screen>
   );
 }
