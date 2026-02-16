@@ -6,7 +6,7 @@ import BookingScreen from "../screens/BookingScreen";
 import CountdownScreen from "../screens/CountdownScreen";
 import AllBicyclesScreen from "../screens/AllBicyclesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import MyBookingsScreen from "../screens/CountdownScreen";
+import MyBookingsScreen from "../screens/MyBookingsScreen";
 
 const Stack = createNativeStackNavigator();
 
