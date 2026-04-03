@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Switch,
 } from "react-native";
 import Screen from "../components/Screenhy";
 import { COLORS } from "../constants/theme";
@@ -17,6 +18,7 @@ export default function MyBookingsScreen({ navigation }) {
   const { token } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [onlyFines, setOnlyFines] = useState(false); // NEW
 
   const loadBookings = async () => {
     try {
@@ -26,7 +28,6 @@ export default function MyBookingsScreen({ navigation }) {
       });
 
       const all = res.data; // array
-
       const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
 
       // sort: today first, then newest first
@@ -45,7 +46,10 @@ export default function MyBookingsScreen({ navigation }) {
 
       setBookings(sorted);
     } catch (err) {
-      console.log("LOAD MY BOOKINGS ERROR:", err?.response?.data || err.message);
+      console.log(
+        "LOAD MY BOOKINGS ERROR:",
+        err?.response?.data || err.message
+      );
       Alert.alert("Error", "Could not load bookings");
     } finally {
       setLoading(false);
@@ -93,8 +97,7 @@ export default function MyBookingsScreen({ navigation }) {
               );
               Alert.alert(
                 "Error",
-                err?.response?.data?.message ||
-                  "Could not delete booking"
+                err?.response?.data?.message || "Could not delete booking"
               );
             }
           },
@@ -103,30 +106,39 @@ export default function MyBookingsScreen({ navigation }) {
     );
   };
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = ({ item }) => {
     const isToday =
       item.bookingTime.slice(0, 10) ===
       new Date().toISOString().slice(0, 10);
+
+    const hasFine =
+      item.fineAmount !== undefined &&
+      item.fineAmount !== null &&
+      Number(item.fineAmount) > 0;
 
     return (
       <View
         style={[
           styles.card,
           isToday && styles.cardToday,
+          hasFine && styles.cardFineHighlight,
         ]}
       >
         <View style={styles.rowTop}>
           <Text style={styles.bikeText}>
             Bicycle #{item.bicycle?.bicycleNumber || item.bicycleId}
           </Text>
-          <Text
-            style={[
-              styles.status,
-              item.status === "CANCELLED" && { color: COLORS.booked },
-            ]}
-          >
-            {item.status}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {hasFine && <Text style={styles.fineBadge}>FINE</Text>}
+            <Text
+              style={[
+                styles.status,
+                item.status === "CANCELLED" && { color: COLORS.booked },
+              ]}
+            >
+              {item.status}
+            </Text>
+          </View>
         </View>
 
         <Text style={styles.line}>
@@ -138,7 +150,13 @@ export default function MyBookingsScreen({ navigation }) {
         {item.note && (
           <Text style={styles.line}>Note: {item.note}</Text>
         )}
-        <Text style={styles.line}>
+
+        <Text
+          style={[
+            styles.line,
+            hasFine && styles.fineLine,
+          ]}
+        >
           Fine: £{item.fineAmount}
         </Text>
 
@@ -164,22 +182,41 @@ export default function MyBookingsScreen({ navigation }) {
     );
   };
 
+  // Apply "only fines" filter here
+  const filteredBookings = bookings.filter((b) => {
+    if (!onlyFines) return true;
+    return Number(b.fineAmount || 0) > 0;
+  });
+
   return (
     <Screen>
       <View style={styles.screen}>
-        <Text style={styles.title}>My bookings</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>My bookings</Text>
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Only fines</Text>
+            <Switch
+              value={onlyFines}
+              onValueChange={setOnlyFines}
+              thumbColor={onlyFines ? COLORS.primary : "#fff"}
+              trackColor={{ false: "#ccc", true: COLORS.primary + "55" }}
+            />
+          </View>
+        </View>
 
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />
         ) : (
           <FlatList
-            data={bookings}
+            data={filteredBookings}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderItem}
             contentContainerStyle={{ paddingBottom: 24 }}
             ListEmptyComponent={
               <Text style={{ color: COLORS.textSecondary }}>
-                No bookings yet.
+                {onlyFines
+                  ? "No bookings with fines."
+                  : "No bookings yet."}
               </Text>
             }
           />
@@ -196,11 +233,25 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     backgroundColor: COLORS.background,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   title: {
     fontSize: 22,
     fontWeight: "700",
     color: COLORS.textMain,
-    marginBottom: 16,
+  },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  filterLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
   },
   card: {
     backgroundColor: COLORS.card,
@@ -215,6 +266,10 @@ const styles = StyleSheet.create({
   cardToday: {
     borderWidth: 1,
     borderColor: COLORS.primary,
+  },
+  cardFineHighlight: {
+    borderWidth: 1,
+    borderColor: "#E53935",
   },
   rowTop: {
     flexDirection: "row",
@@ -231,11 +286,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: COLORS.textSecondary,
+    marginLeft: 6,
   },
   line: {
     fontSize: 13,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  fineLine: {
+    color: "#E53935",
+    fontWeight: "700",
   },
   rowBottom: {
     flexDirection: "row",
@@ -251,6 +311,16 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark,
     fontSize: 11,
     fontWeight: "600",
+  },
+  fineBadge: {
+    backgroundColor: "#FFCDD2",
+    color: "#B71C1C",
+    fontSize: 10,
+    fontWeight: "700",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+    marginRight: 4,
   },
   deleteButton: {
     paddingHorizontal: 12,

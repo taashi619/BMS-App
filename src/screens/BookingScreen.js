@@ -44,7 +44,7 @@ const { token } = useAuth();
         {
           text: "OK",
           onPress: () =>
-            navigation.replace("Countdown", {
+            navigation.replace("HomeMain", {
               booking: res.data.booking,
             }),
         },

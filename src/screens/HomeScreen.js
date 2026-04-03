@@ -8,7 +8,7 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
-  Alert
+  Alert,
 } from "react-native";
 import BicycleCard from "../components/BicycleCard";
 import { COLORS } from "../constants/theme";
@@ -23,78 +23,62 @@ export default function HomeScreen({ navigation }) {
   const [bicycles, setBicycles] = useState([]);
   const [currentBooking, setCurrentBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { token, user } = useAuth();
   const firstName = user?.firstName || "Student";
   const lastName = user?.lastName || "";
 
+  // shared fetchAll used everywhere
+  const fetchAll = useCallback(async () => {
+    if (!token) return;
+    try {
+      if (!refreshing) setLoading(true);
+
+      // 1) bicycles
+      const bikesRes = await api.get("/bicycles", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const mappedBikes = bikesRes.data.map((b) => ({
+        id: String(b.id),
+        number: b.bicycleNumber,
+        status: b.status,
+      }));
+      setBicycles(mappedBikes);
+
+      // 2) current booking
+      const bookingsRes = await api.get("/bookings/my", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const bookings = bookingsRes.data;
+      const active = bookings.filter((b) =>
+        ["BOOKED", "KEY_TAKEN", "RETURN_PENDING"].includes(b.status)
+      );
+      const latest =
+        active.length > 0
+          ? active.sort(
+              (a, b) => new Date(b.bookingTime) - new Date(a.bookingTime)
+            )[0]
+          : null;
+      setCurrentBooking(latest);
+    } catch (err) {
+      console.log("FETCH ALL ERROR:", err?.response?.data || err.message);
+      setCurrentBooking(null);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [token, refreshing]);
+
+  // run when screen focused + optional polling
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
-      const fetchBicycles = async () => {
-        try {
-          const res = await api.get("/bicycles", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          const backendBikes = res.data;
-          const mapped = backendBikes.map((b) => ({
-            id: String(b.id),
-            number: b.bicycleNumber,
-            status: b.status,
-          }));
-
-          if (isActive) setBicycles(mapped);
-        } catch (err) {
-          console.log(
-            "FETCH BICYCLES ERROR:",
-            err?.response?.data || err.message
-          );
-        }
-      };
-
-      const fetchCurrentBooking = async () => {
-        try {
-          const res = await api.get("/bookings/my", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          const bookings = res.data; // array
-
-          // filter to active ones only
-          const active = bookings.filter((b) =>
-            ["BOOKED", "KEY_TAKEN", "RETURN_PENDING"].includes(b.status)
-          );
-
-          // choose the most recent (by bookingTime)
-          const latest =
-            active.length > 0
-              ? active.sort(
-                (a, b) => new Date(b.bookingTime) - new Date(a.bookingTime)
-              )[0]
-              : null;
-
-          if (isActive) setCurrentBooking(latest);
-        } catch (err) {
-          console.log(
-            "FETCH CURRENT BOOKING ERROR:",
-            err?.response?.data || err.message
-          );
-          if (isActive) setCurrentBooking(null);
-        }
-      };
-      const fetchAll = async () => {
-        setLoading(true);
-        await Promise.all([fetchBicycles(), fetchCurrentBooking()]);
-        if (isActive) setLoading(false);
-      };
-      
       fetchAll();
 
-      return () => {
-        isActive = false;
-      };
-    }, [token])
+      // optional auto-refresh every 30s:
+      const id = setInterval(fetchAll, 10000);
+      return () => clearInterval(id);
+    }, [fetchAll])
   );
 
   const handleCancelBooking = async () => {
@@ -110,31 +94,17 @@ export default function HomeScreen({ navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
-              await api.patch(`/bookings/${currentBooking.id}/cancel`, null, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              // remove current booking from card
-              setCurrentBooking(null);
-
-              // refresh bicycles so the bike becomes AVAILABLE
-              try {
-                const res = await api.get("/bicycles", {
+              await api.patch(
+                `/bookings/${currentBooking.id}/cancel`,
+                null,
+                {
                   headers: { Authorization: `Bearer ${token}` },
-                });
-                const mapped = res.data.map((b) => ({
-                  id: String(b.id),
-                  number: b.bicycleNumber,
-                  status: b.status,
-                }));
-                setBicycles(mapped);
-              } catch (err) {
-                console.log(
-                  "REFRESH BIKES AFTER CANCEL ERROR:",
-                  err?.response?.data || err.message
-                );
-              }
+                }
+              );
 
+              setCurrentBooking(null);
+              // refresh everything
+              await fetchAll();
               Alert.alert("Cancelled", "Booking cancelled successfully");
             } catch (err) {
               console.log(
@@ -144,6 +114,58 @@ export default function HomeScreen({ navigation }) {
               const msg =
                 err?.response?.data?.message ||
                 "Could not cancel booking";
+              Alert.alert("Error", msg);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReturnKey = async () => {
+    if (!currentBooking) return;
+
+    Alert.alert(
+      "Return bicycle key?",
+      "Are you sure you want to return the bicycle key now?",
+      [
+        { text: "Not yet", style: "cancel" },
+        {
+          text: "Yes, return key",
+          onPress: async () => {
+            try {
+              const res = await api.patch(
+                `/bookings/${currentBooking.id}/return`,
+                {},
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
+              console.log("RETURN RESPONSE:", res.data);
+              Alert.alert("Return requested", res.data.message);
+
+              // optimistic update: mark as RETURN_PENDING locally
+              setCurrentBooking((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      status: "RETURN_PENDING",
+                      keyTaken: false,
+                    }
+                  : prev
+              );
+
+              // background refresh from backend
+              await fetchAll();
+            } catch (err) {
+              console.log(
+                "RETURN BOOKING ERROR:",
+                err?.response?.data || err.message
+              );
+              const msg =
+                err?.response?.data?.message ||
+                "Could not return bicycle";
               Alert.alert("Error", msg);
             }
           },
@@ -175,7 +197,6 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <Screen>
-      {/* background bikes */}
       <Image
         source={require("../../assets/bike.jpg")}
         style={styles.bgBikeTop}
@@ -195,9 +216,7 @@ export default function HomeScreen({ navigation }) {
         onBookings={goToBookings}
       />
 
-      {/* foreground content */}
       <View style={styles.content}>
-        {/* header */}
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>
@@ -213,7 +232,6 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* weather card */}
         <View style={styles.infoCard}>
           <View style={{ flex: 1 }}>
             <Text style={styles.infoTemp}>18°</Text>
@@ -226,7 +244,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* section header */}
         {currentBooking ? (
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Your booking</Text>
@@ -243,13 +260,13 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* main content under header */}
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />
         ) : currentBooking ? (
           <CurrentBookingCard
             booking={currentBooking}
             onCancelPress={handleCancelBooking}
+            onReturnKeyPress={handleReturnKey}
             onDetailsPress={goToBookings}
           />
         ) : (
@@ -268,6 +285,11 @@ export default function HomeScreen({ navigation }) {
                 No bicycles available.
               </Text>
             }
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchAll();
+            }}
           />
         )}
       </View>
@@ -384,76 +406,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#007AFF",
     fontWeight: "500",
-  },
-
-  // booking card styles
-  bookingCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  bookingHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  bookingTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.textMain,
-  },
-  bookingStatus: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  bookingBike: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.textMain,
-    marginTop: 4,
-  },
-  bookingInfo: {
-    marginTop: 4,
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-  bookingNote: {
-    marginTop: 4,
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  bookingButtonsRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 12,
-  },
-  bookingCancelButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    backgroundColor: COLORS.booked, // your red colour
-    marginRight: 8,
-  },
-  bookingCancelText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  bookingDetailsButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    backgroundColor: COLORS.primaryDark,
-  },
-  bookingDetailsText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
   },
 });

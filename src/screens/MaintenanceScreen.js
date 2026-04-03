@@ -7,6 +7,11 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  FlatList,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/theme";
@@ -14,16 +19,30 @@ import Screen from "../components/Screenhy";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import { SelectList } from "react-native-dropdown-select-list";
+
+// enable layout animation on Android
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function MaintenanceScreen() {
   const [bikeNumber, setBikeNumber] = useState("");
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null);
   const { token } = useAuth();
+
   const [bikes, setBikes] = useState([]);
   const [loadingBikes, setLoadingBikes] = useState(false);
+
+  const [myHistory, setMyHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Load bicycles for dropdown
   useEffect(() => {
     const fetchBikes = async () => {
       try {
+        setLoadingBikes(true);
         const res = await api.get("/bicycles", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -42,9 +61,10 @@ export default function MaintenanceScreen() {
       }
     };
 
-    fetchBikes();
+    if (token) {
+      fetchBikes();
+    }
   }, [token]);
-
 
   const handlePickImage = async () => {
     const { status } =
@@ -79,7 +99,6 @@ export default function MaintenanceScreen() {
       const formData = new FormData();
 
       formData.append("description", description);
-
       formData.append("bicycleId", Number(bikeNumber));
 
       if (photo) {
@@ -110,15 +129,74 @@ export default function MaintenanceScreen() {
       setDescription("");
       setPhoto(null);
     } catch (err) {
-      console.log(
-        "MAINTENANCE ERROR:",
-        err?.response?.data || err.message
-      );
+      console.log("MAINTENANCE ERROR:", err?.response?.data || err.message);
       const msg =
-        err?.response?.data?.message ||
+        (err && err.response && err.response.data && err.response.data.message) ||
         "Could not submit maintenance request";
       Alert.alert("Error", msg);
     }
+  };
+
+  const loadMyHistory = async () => {
+    if (!token) {
+      Alert.alert("Not logged in", "Please log in again.");
+      return;
+    }
+
+    try {
+      setLoadingHistory(true);
+      const res = await api.get("/maintenance/my", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("MY MAINT HISTORY:", res.data);
+      setMyHistory(res.data);
+    } catch (err) {
+      console.log(
+        "MY MAINT HISTORY ERROR:",
+        err?.response?.data || err.message
+      );
+      const msg =
+        (err && err.response && err.response.data && err.response.data.message) ||
+        "Could not load maintenance history";
+      Alert.alert("Error", msg);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const toggleHistory = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    const next = !showHistory;
+    setShowHistory(next);
+
+    if (next && myHistory.length === 0 && !loadingHistory) {
+      loadMyHistory();
+    }
+  };
+
+  const renderHistoryItem = ({ item }) => {
+    const bikeLabel =
+      item.bicycle && item.bicycle.bicycleNumber
+        ? `Bicycle #${item.bicycle.bicycleNumber}`
+        : "Unknown bicycle";
+
+    const dateLabel = new Date(item.reportedDate).toLocaleString();
+
+    return (
+      <View style={styles.historyCard}>
+        <View style={styles.historyHeaderRow}>
+          <Text style={styles.historyBike}>{bikeLabel}</Text>
+          <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+            <Text style={styles.statusText}>
+              {item.status.replace("_", " ")}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.historyDate}>{dateLabel}</Text>
+        <Text style={styles.historyDesc}>{item.description}</Text>
+      </View>
+    );
   };
 
   return (
@@ -140,7 +218,9 @@ export default function MaintenanceScreen() {
             inputStyles={styles.selectText}
             dropdownTextStyles={styles.dropdownText}
             arrowicon={
-              <Text style={{ fontSize: 16, color: COLORS.textSecondary }}>▾</Text>
+              <Text style={{ fontSize: 16, color: COLORS.textSecondary }}>
+                ▾
+              </Text>
             }
           />
         )}
@@ -170,6 +250,36 @@ export default function MaintenanceScreen() {
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
           <Text style={styles.submitText}>Submit issue</Text>
         </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+
+         {/* Collapsible header */}
+        <TouchableOpacity style={styles.historyHeader} onPress={toggleHistory}>
+          <Text style={styles.historyHeaderText}>My maintenance history</Text>
+          <Text style={styles.historyHeaderIcon}>{showHistory ? "▴" : "▾"}</Text>
+        </TouchableOpacity>
+
+        {/* Collapsible content */}
+        {showHistory && (
+          <View style={styles.historyContainer}>
+            {loadingHistory ? (
+              <ActivityIndicator color={COLORS.primary} />
+            ) : myHistory.length === 0 ? (
+              <Text style={styles.historyEmptyText}>
+                You have not submitted any maintenance requests yet.
+              </Text>
+            ) : (
+              <FlatList
+                data={myHistory}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={renderHistoryItem}
+                scrollEnabled={false}
+              />
+            )}
+          </View>
+        )}
+
       </View>
     </Screen>
   );
@@ -186,8 +296,91 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     color: COLORS.textMain,
-    marginBottom: 24,
+    marginBottom: 16,
   },
+
+  // collapsible header
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  historyHeaderText: {
+    fontSize: 14,
+    color: COLORS.primaryDark,
+    fontWeight: "600",
+  },
+  historyHeaderIcon: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  historyContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    marginBottom: 12,
+  },
+  historyEmptyText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  historyCard: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+  },
+  historyHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  historyBike: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.textMain,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  statusText: {
+    fontSize: 11,
+    color: "#fff",
+    fontWeight: "600",
+  },
+  status_IN_PROGRESS: {
+    backgroundColor: "#f0ad4e",
+  },
+  status_NEW: {
+    backgroundColor: COLORS.primary,
+  },
+  status_RESOLVED: {
+    backgroundColor: "#5cb85c",
+  },
+  status_CLOSED: {
+    backgroundColor: "#777",
+  },
+  historyDate: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  historyDesc: {
+    fontSize: 13,
+    color: COLORS.textMain,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E5E5",
+    marginVertical: 12,
+  },
+
   label: {
     fontSize: 14,
     color: COLORS.textSecondary,
@@ -231,43 +424,40 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   submitButton: {
-    marginTop: "auto",
-    marginBottom: 16,
+    marginTop: 12,
     backgroundColor: COLORS.primaryDark,
     paddingVertical: 14,
     borderRadius: 24,
     alignItems: "center",
+    marginBottom: 16,
   },
   submitText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
- selectBox: {
-  backgroundColor: COLORS.card,
-  borderRadius: 16,
-  paddingHorizontal: 14,
-  paddingVertical: 10,
-  borderWidth: 1,
-  borderColor: "#E0E0E0",
-},
-
-selectText: {
-  fontSize: 14,
-  color: COLORS.textMain,
-},
-
-dropdown: {
-  backgroundColor: COLORS.card,
-  borderRadius: 16,
-  marginTop: 4,
-  borderWidth: 1,
-  borderColor: "#E0E0E0",
-},
-
-dropdownText: {
-  fontSize: 14,
-  color: COLORS.textMain,
-  paddingVertical: 8,
-},
+  selectBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  selectText: {
+    fontSize: 14,
+    color: COLORS.textMain,
+  },
+  dropdown: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: COLORS.textMain,
+    paddingVertical: 8,
+  },
 });
