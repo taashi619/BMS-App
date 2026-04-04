@@ -29,13 +29,11 @@ export default function HomeScreen({ navigation }) {
   const firstName = user?.firstName || "Student";
   const lastName = user?.lastName || "";
 
-  // shared fetchAll used everywhere
   const fetchAll = useCallback(async () => {
     if (!token) return;
     try {
       if (!refreshing) setLoading(true);
 
-      // 1) bicycles
       const bikesRes = await api.get("/bicycles", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -46,7 +44,6 @@ export default function HomeScreen({ navigation }) {
       }));
       setBicycles(mappedBikes);
 
-      // 2) current booking
       const bookingsRes = await api.get("/bookings/my", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -70,12 +67,9 @@ export default function HomeScreen({ navigation }) {
     }
   }, [token, refreshing]);
 
-  // run when screen focused + optional polling
   useFocusEffect(
     useCallback(() => {
       fetchAll();
-
-      // optional auto-refresh every 30s:
       const id = setInterval(fetchAll, 10000);
       return () => clearInterval(id);
     }, [fetchAll])
@@ -103,7 +97,6 @@ export default function HomeScreen({ navigation }) {
               );
 
               setCurrentBooking(null);
-              // refresh everything
               await fetchAll();
               Alert.alert("Cancelled", "Booking cancelled successfully");
             } catch (err) {
@@ -145,7 +138,6 @@ export default function HomeScreen({ navigation }) {
               console.log("RETURN RESPONSE:", res.data);
               Alert.alert("Return requested", res.data.message);
 
-              // optimistic update: mark as RETURN_PENDING locally
               setCurrentBooking((prev) =>
                 prev
                   ? {
@@ -156,7 +148,6 @@ export default function HomeScreen({ navigation }) {
                   : prev
               );
 
-              // background refresh from backend
               await fetchAll();
             } catch (err) {
               console.log(
@@ -195,14 +186,18 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate("MyBookings");
   };
 
+  const hasBooking = !!currentBooking;
+  const availableCount = bicycles.filter((b) => b.status === "AVAILABLE")
+    .length;
+
   return (
     <Screen>
+      {/* subtle bike background */}
       <Image
         source={require("../../assets/bike.jpg")}
         style={styles.bgBikeTop}
         resizeMode="contain"
       />
-
       <Image
         source={require("../../assets/bike.jpg")}
         style={styles.bgBikeBottom}
@@ -217,12 +212,17 @@ export default function HomeScreen({ navigation }) {
       />
 
       <View style={styles.content}>
+        {/* header */}
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>
               Hello {firstName} {lastName},
             </Text>
-            <Text style={styles.subTitle}>Want to take a ride today?</Text>
+            <Text style={styles.subTitle}>
+              {hasBooking
+                ? "You have a ride in progress."
+                : "Ready to grab a bike and go?"}
+            </Text>
           </View>
 
           <TouchableOpacity style={styles.avatar} onPress={openMenu}>
@@ -232,18 +232,22 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.infoCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.infoTemp}>18°</Text>
-            <Text style={styles.infoText}>Cloudy • Campus</Text>
-            <Text style={styles.infoDate}>Thursday, 5 February</Text>
+        {/* stats banner */}
+        <View style={styles.statsCard}>
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>Available bikes</Text>
+            <Text style={styles.statValue}>{availableCount}</Text>
           </View>
-          <View style={styles.infoIcon}>
-            <View style={styles.sun} />
-            <View style={styles.cloud} />
+          <View style={styles.statDivider} />
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>Status</Text>
+            <Text style={styles.statValue}>
+              {hasBooking ? "Riding" : "Not riding"}
+            </Text>
           </View>
         </View>
 
+        {/* section header */}
         {currentBooking ? (
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Your booking</Text>
@@ -253,13 +257,14 @@ export default function HomeScreen({ navigation }) {
           </View>
         ) : (
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Available Bikes For You</Text>
+            <Text style={styles.sectionTitle}>Available bikes for you</Text>
             <TouchableOpacity onPress={handleSeeAll}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
         )}
 
+        {/* main content */}
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />
         ) : currentBooking ? (
@@ -323,7 +328,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 18,
   },
   greeting: {
     fontSize: 26,
@@ -348,49 +353,39 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 18,
   },
-  infoCard: {
+
+  // stats banner
+  statsCard: {
     flexDirection: "row",
-    backgroundColor: COLORS.primary,
-    borderRadius: 24,
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    marginBottom: 28,
-    minHeight: 110,
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 22,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  infoTemp: {
-    fontSize: 34,
+  statBlock: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  statValue: {
+    marginTop: 4,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#fff",
+    color: COLORS.textMain,
   },
-  infoText: {
-    color: "rgba(255,255,255,0.95)",
-    marginTop: 6,
-    fontSize: 16,
+  statDivider: {
+    width: 1,
+    backgroundColor: "#E5E5E5",
+    marginHorizontal: 12,
   },
-  infoDate: {
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 8,
-    fontSize: 13,
-    marginBottom: 8,
-  },
-  infoIcon: {
-    width: 90,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  sun: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#FFD54F",
-    marginBottom: -10,
-  },
-  cloud: {
-    width: 60,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#fff",
-  },
+
   sectionRow: {
     flexDirection: "row",
     justifyContent: "space-between",

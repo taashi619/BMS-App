@@ -12,6 +12,7 @@ import {
   Platform,
   UIManager,
   FlatList,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/theme";
@@ -20,8 +21,10 @@ import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import { SelectList } from "react-native-dropdown-select-list";
 
-// enable layout animation on Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -54,7 +57,10 @@ export default function MaintenanceScreen() {
 
         setBikes(options);
       } catch (err) {
-        console.log("LOAD BIKES ERROR:", err?.response?.data || err.message);
+        console.log(
+          "LOAD BIKES ERROR:",
+          err?.response?.data || err.message
+        );
         Alert.alert("Error", "Could not load bicycles for maintenance");
       } finally {
         setLoadingBikes(false);
@@ -86,7 +92,10 @@ export default function MaintenanceScreen() {
 
   const handleSubmit = async () => {
     if (!bikeNumber || !description) {
-      Alert.alert("Missing info", "Please enter bike number and description.");
+      Alert.alert(
+        "Missing info",
+        "Please enter bike number and description."
+      );
       return;
     }
 
@@ -123,15 +132,24 @@ export default function MaintenanceScreen() {
       });
 
       console.log("MAINTENANCE RESPONSE:", res.data);
-      Alert.alert("Thanks!", "Your maintenance request has been submitted.");
+      Alert.alert(
+        "Thanks!",
+        "Your maintenance request has been submitted."
+      );
 
       setBikeNumber("");
       setDescription("");
       setPhoto(null);
     } catch (err) {
-      console.log("MAINTENANCE ERROR:", err?.response?.data || err.message);
+      console.log(
+        "MAINTENANCE ERROR:",
+        err?.response?.data || err.message
+      );
       const msg =
-        (err && err.response && err.response.data && err.response.data.message) ||
+        (err &&
+          err.response &&
+          err.response.data &&
+          err.response.data.message) ||
         "Could not submit maintenance request";
       Alert.alert("Error", msg);
     }
@@ -156,7 +174,10 @@ export default function MaintenanceScreen() {
         err?.response?.data || err.message
       );
       const msg =
-        (err && err.response && err.response.data && err.response.data.message) ||
+        (err &&
+          err.response &&
+          err.response.data &&
+          err.response.data.message) ||
         "Could not load maintenance history";
       Alert.alert("Error", msg);
     } finally {
@@ -165,7 +186,9 @@ export default function MaintenanceScreen() {
   };
 
   const toggleHistory = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    LayoutAnimation.configureNext(
+      LayoutAnimation.Presets.easeInEaseOut
+    );
 
     const next = !showHistory;
     setShowHistory(next);
@@ -187,7 +210,12 @@ export default function MaintenanceScreen() {
       <View style={styles.historyCard}>
         <View style={styles.historyHeaderRow}>
           <Text style={styles.historyBike}>{bikeLabel}</Text>
-          <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+          <View
+            style={[
+              styles.statusBadge,
+              styles[`status_${item.status}`],
+            ]}
+          >
             <Text style={styles.statusText}>
               {item.status.replace("_", " ")}
             </Text>
@@ -201,7 +229,11 @@ export default function MaintenanceScreen() {
 
   return (
     <Screen>
-      <View style={styles.screen}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Report maintenance issue</Text>
 
         <Text style={styles.label}>Bicycle</Text>
@@ -218,7 +250,9 @@ export default function MaintenanceScreen() {
             inputStyles={styles.selectText}
             dropdownTextStyles={styles.dropdownText}
             arrowicon={
-              <Text style={{ fontSize: 16, color: COLORS.textSecondary }}>
+              <Text
+                style={{ fontSize: 16, color: COLORS.textSecondary }}
+              >
                 ▾
               </Text>
             }
@@ -236,28 +270,43 @@ export default function MaintenanceScreen() {
 
         <Text style={styles.label}>Optional photo</Text>
         <View style={styles.photoRow}>
-          <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
+          <TouchableOpacity
+            style={styles.photoButton}
+            onPress={handlePickImage}
+          >
             <Text style={styles.photoButtonText}>
               {photo ? "Change photo" : "Add photo"}
             </Text>
           </TouchableOpacity>
 
           {photo && (
-            <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
+            <Image
+              source={{ uri: photo.uri }}
+              style={styles.photoPreview}
+            />
           )}
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={handleSubmit}
+        >
           <Text style={styles.submitText}>Submit issue</Text>
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
-
-         {/* Collapsible header */}
-        <TouchableOpacity style={styles.historyHeader} onPress={toggleHistory}>
-          <Text style={styles.historyHeaderText}>My maintenance history</Text>
-          <Text style={styles.historyHeaderIcon}>{showHistory ? "▴" : "▾"}</Text>
+        {/* Collapsible header */}
+        <TouchableOpacity
+          style={styles.historyHeader}
+          onPress={toggleHistory}
+        >
+          <Text style={styles.historyHeaderText}>
+            My maintenance history
+          </Text>
+          <Text style={styles.historyHeaderIcon}>
+            {showHistory ? "▴" : "▾"}
+          </Text>
         </TouchableOpacity>
 
         {/* Collapsible content */}
@@ -279,8 +328,7 @@ export default function MaintenanceScreen() {
             )}
           </View>
         )}
-
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -297,88 +345,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.textMain,
     marginBottom: 16,
-  },
-
-  // collapsible header
-  historyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    marginBottom: 4,
-  },
-  historyHeaderText: {
-    fontSize: 14,
-    color: COLORS.primaryDark,
-    fontWeight: "600",
-  },
-  historyHeaderIcon: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
-  historyContainer: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    marginBottom: 12,
-  },
-  historyEmptyText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-  historyCard: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
-  },
-  historyHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  historyBike: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.textMain,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  statusText: {
-    fontSize: 11,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  status_IN_PROGRESS: {
-    backgroundColor: "#f0ad4e",
-  },
-  status_NEW: {
-    backgroundColor: COLORS.primary,
-  },
-  status_RESOLVED: {
-    backgroundColor: "#5cb85c",
-  },
-  status_CLOSED: {
-    backgroundColor: "#777",
-  },
-  historyDate: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginBottom: 2,
-  },
-  historyDesc: {
-    fontSize: 13,
-    color: COLORS.textMain,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#E5E5E5",
-    marginVertical: 12,
   },
 
   label: {
@@ -459,5 +425,87 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textMain,
     paddingVertical: 8,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E5E5",
+    marginVertical: 12,
+  },
+
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  historyHeaderText: {
+    fontSize: 14,
+    color: COLORS.primaryDark,
+    fontWeight: "600",
+  },
+  historyHeaderIcon: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  historyContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    marginBottom: 12,
+  },
+  historyEmptyText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  historyCard: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+  },
+  historyHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  historyBike: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.textMain,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  statusText: {
+    fontSize: 11,
+    color: "#fff",
+    fontWeight: "600",
+  },
+  status_IN_PROGRESS: {
+    backgroundColor: "#f0ad4e",
+  },
+  status_NEW: {
+    backgroundColor: COLORS.primary,
+  },
+  status_RESOLVED: {
+    backgroundColor: "#5cb85c",
+  },
+  status_CLOSED: {
+    backgroundColor: "#777",
+  },
+  historyDate: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  historyDesc: {
+    fontSize: 13,
+    color: COLORS.textMain,
   },
 });

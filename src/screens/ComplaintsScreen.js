@@ -13,6 +13,7 @@ import {
   Platform,
   UIManager,
   FlatList,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/theme";
@@ -21,7 +22,10 @@ import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
 // enable layout animation on Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -94,7 +98,6 @@ export default function ComplaintsScreen() {
       setDescription("");
       setPhoto(null);
 
-      // optional: refresh list if section is open
       if (showComplaints) {
         loadMyComplaints();
       }
@@ -104,7 +107,10 @@ export default function ComplaintsScreen() {
         err?.response?.data || err.message
       );
       const msg =
-        (err && err.response && err.response.data && err.response.data.message) ||
+        (err &&
+          err.response &&
+          err.response.data &&
+          err.response.data.message) ||
         "Could not submit complaint";
       Alert.alert("Error", msg);
     }
@@ -133,7 +139,9 @@ export default function ComplaintsScreen() {
   };
 
   const toggleComplaints = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    LayoutAnimation.configureNext(
+      LayoutAnimation.Presets.easeInEaseOut
+    );
 
     const next = !showComplaints;
     setShowComplaints(next);
@@ -150,7 +158,12 @@ export default function ComplaintsScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Complaint #{item.id}</Text>
-          <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+          <View
+            style={[
+              styles.statusBadge,
+              styles[`status_${item.status}`],
+            ]}
+          >
             <Text style={styles.statusText}>
               {item.status.replace("_", " ")}
             </Text>
@@ -164,9 +177,12 @@ export default function ComplaintsScreen() {
 
   return (
     <Screen>
-      <View style={styles.screen}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Submit a complaint</Text>
-
 
         <Text style={styles.label}>What happened?</Text>
         <TextInput
@@ -179,25 +195,37 @@ export default function ComplaintsScreen() {
 
         <Text style={styles.label}>Optional photo</Text>
         <View style={styles.photoRow}>
-          <TouchableOpacity style={styles.photoButton} onPress={handlePickImage}>
+          <TouchableOpacity
+            style={styles.photoButton}
+            onPress={handlePickImage}
+          >
             <Text style={styles.photoButtonText}>
               {photo ? "Change photo" : "Add photo"}
             </Text>
           </TouchableOpacity>
 
           {photo && (
-            <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
+            <Image
+              source={{ uri: photo.uri }}
+              style={styles.photoPreview}
+            />
           )}
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={handleSubmit}
+        >
           <Text style={styles.submitText}>Submit complaint</Text>
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
         {/* Collapsible complaints history */}
-        <TouchableOpacity style={styles.historyHeader} onPress={toggleComplaints}>
+        <TouchableOpacity
+          style={styles.historyHeader}
+          onPress={toggleComplaints}
+        >
           <Text style={styles.historyHeaderText}>My complaints</Text>
           <Text style={styles.historyHeaderIcon}>
             {showComplaints ? "▴" : "▾"}
@@ -222,9 +250,7 @@ export default function ComplaintsScreen() {
             )}
           </View>
         )}
-
-
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -367,7 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginLeft: 12,
   },
- submitButton: {
+  submitButton: {
     marginTop: 12,
     backgroundColor: COLORS.primaryDark,
     paddingVertical: 14,

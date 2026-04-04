@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,106 +10,154 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../constants/theme";
 import Screen from "../components/Screenhy";
+import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
+
 export default function SettingsScreen({ navigation }) {
+  const { token, user } = useAuth();
+
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalFine: 0,
+  });
+
   const handleFeedback = () => navigation.navigate("Complaints");
   const handleChangePassword = () => navigation.navigate("ChangePassword");
-  const handleDeleteAccount = () => {};
+  const handleDeleteAccount = () => { };
   const handleLogout = () => {
     navigation.reset({ index: 0, routes: [{ name: "Login" }] });
   };
-  const handlePrivacy = () => {};
+  const handlePrivacy = () => { };
 
-  // mock stats – later replace from backend
-  const stats = { totalBookings: 8, activeFines: 1 };
+  const handleAvatarPress = () => {
+    navigation.navigate("Home", {
+      screen: "Profile",
+    });
+  };
+
+  useEffect(() => {
+    if (!token) return;
+
+    const loadStats = async () => {
+      try {
+        // total bookings from /bookings/my
+        const bookingsRes = await api.get("/bookings/my", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const bookings = bookingsRes.data || [];
+        const totalBookings = bookings.length;
+
+        // total fine from /bookings/my/total-fine
+        const fineRes = await api.get("/bookings/my/total-fine", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const totalFine = Number(fineRes.data?.totalFine || 0);
+
+        setStats({
+          totalBookings,
+          totalFine,
+        });
+      } catch (err) {
+        console.log(
+          "LOAD SETTINGS STATS ERROR:",
+          err?.response?.data || err.message
+        );
+      }
+    };
+
+    loadStats();
+  }, [token]);
+
+  const initials =
+    (user?.firstName?.[0] || "") + (user?.lastName?.[0] || "");
 
   return (
     <Screen>
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 32 }}
-    >
-      {/* header block with background bike */}
-      <View style={styles.headerCard}>
-        <Image
-          source={require("../../assets/bike.jpg")}
-          style={styles.headerBgBike}
-          resizeMode="contain"
-        />
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
+        {/* header block with background bike */}
+        <View style={styles.headerCard}>
+          <Image
+            source={require("../../assets/bike.jpg")}
+            style={styles.headerBgBike}
+            resizeMode="contain"
+          />
 
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerTitle}>Settings</Text>
-            <Text style={styles.headerSubtitle}>Manage your account</Text>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.headerTitle}>Settings</Text>
+              <Text style={styles.headerSubtitle}>Manage your account</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.avatarCircle}
+              onPress={handleAvatarPress}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.avatarText}>
+                {initials || "U"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>J</Text>
+          {/* quick stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Ionicons
+                name="bicycle-outline"
+                size={18}
+                color={COLORS.primaryDark}
+              />
+              <Text style={styles.statLabel}>Total bookings</Text>
+              <Text style={styles.statValue}>{stats.totalBookings}</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color="#C62828"
+              />
+              <Text style={styles.statLabel}>Total fines</Text>
+              <Text style={[styles.statValue, { color: "#C62828" }]}>
+                £{stats.totalFine.toFixed(2)}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* quick stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Ionicons
-              name="bicycle-outline"
-              size={18}
-              color={COLORS.primaryDark}
-            />
-            <Text style={styles.statLabel}>Total bookings</Text>
-            <Text style={styles.statValue}>{stats.totalBookings}</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="alert-circle-outline" size={18} color="#C62828" />
-            <Text style={styles.statLabel}>Active fines</Text>
-            <Text style={[styles.statValue, { color: "#C62828" }]}>
-              {stats.activeFines}
-            </Text>
-          </View>
+        {/* main actions */}
+        <View style={styles.section}>
+          <SettingsItem
+            icon="lock-closed-outline"
+            label="Change password"
+            onPress={handleChangePassword}
+          />
         </View>
-      </View>
 
-      {/* main actions */}
-      <View style={styles.section}>
-        {/* <SettingsItem
-          icon="chatbox-ellipses-outline"
-          label="Feedback"
-          onPress={handleFeedback}
-        /> */}
-        <SettingsItem
-          icon="lock-closed-outline"
-          label="Change password"
-          onPress={handleChangePassword}
-        />
-      </View>
+        <View style={styles.section}>
+          <SettingsItem
+            icon="log-out-outline"
+            label="Log out"
+            onPress={handleLogout}
+            danger
+          />
+        </View>
 
-      <View style={styles.section}>
-        {/* <SettingsItem
-          icon="person-remove-outline"
-          label="Delete account"
-          onPress={handleDeleteAccount}
-          danger
-        /> */}
-        <SettingsItem
-          icon="log-out-outline"
-          label="Log out"
-          onPress={handleLogout}
-          danger
-        />
-      </View>
+        {/* footer */}
+        <TouchableOpacity style={styles.privacyRow} onPress={handlePrivacy}>
+          <Ionicons
+            name="shield-checkmark-outline"
+            size={16}
+            color={COLORS.textSecondary}
+          />
+          <Text style={styles.privacyText}>Privacy policy</Text>
+        </TouchableOpacity>
 
-      {/* footer */}
-      <TouchableOpacity style={styles.privacyRow} onPress={handlePrivacy}>
-        <Ionicons
-          name="shield-checkmark-outline"
-          size={16}
-          color={COLORS.textSecondary}
-        />
-        <Text style={styles.privacyText}>Privacy policy</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.versionText}>Version 1.0.0</Text>
-    </ScrollView>
+        <Text style={styles.versionText}>Version 1.0.0</Text>
+      </ScrollView>
     </Screen>
   );
 }
@@ -120,10 +168,20 @@ function SettingsItem({ icon, label, onPress, danger }) {
   const iconColor = danger ? "#fff" : COLORS.primaryDark;
 
   return (
-    <TouchableOpacity style={[styles.item, { backgroundColor: bg }]} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.item, { backgroundColor: bg }]}
+      onPress={onPress}
+    >
       <View style={styles.itemLeft}>
-        <Ionicons name={icon} size={20} color={iconColor} style={styles.itemIcon} />
-        <Text style={[styles.itemText, { color: textColor }]}>{label}</Text>
+        <Ionicons
+          name={icon}
+          size={20}
+          color={iconColor}
+          style={styles.itemIcon}
+        />
+        <Text style={[styles.itemText, { color: textColor }]}>
+          {label}
+        </Text>
       </View>
       <Ionicons
         name="chevron-forward"
@@ -142,7 +200,7 @@ const styles = StyleSheet.create({
 
   headerCard: {
     marginHorizontal: 16,
-    marginTop:25,
+    marginTop: 25,
     marginBottom: 20,
     borderRadius: 24,
     padding: 16,
