@@ -33,8 +33,8 @@ export default function AppLogo({ size = 60, showText = true }) {
 
       {showText && (
         <View style={styles.textBlock}>
-          <Text style={styles.title}>Campus Bike</Text>
-          <Text style={styles.subtitle}>Share • Ride • Repeat</Text>
+          <Text style={styles.logoWordmark}>Uni Bike</Text>
+          <Text style={styles.subtitle}>Booked • Ride • Repeat</Text>
         </View>
       )}
     </View>
@@ -67,10 +67,12 @@ const styles = StyleSheet.create({
   textBlock: {
     marginLeft: 10,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
+  logoWordmark: {
+    fontSize: 40,                // big like your handwritten title
+    fontFamily: "UniBikeScript", // your custom script font
     color: COLORS.textMain,
+    letterSpacing: 1,
+    transform: [{ rotate: "-3deg" }], // tiny tilt for a handwritten feel
   },
   subtitle: {
     fontSize: 11,

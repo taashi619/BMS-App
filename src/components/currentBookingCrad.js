@@ -111,21 +111,10 @@ export default function CurrentBookingCard({
       {hasRequestedReturn && (
         <View style={styles.finishedBox}>
           <Text style={styles.finishedTitle}>Thanks for the ride!</Text>
-          {hasFine ? (
             <Text style={styles.finishedText}>
-              A provisional late-return fee of{" "}
-              <Text style={styles.finishedFine}>
-                £{Number(booking.fineAmount).toFixed(2)}
-              </Text>{" "}
-              is calculated for this trip. A staff member will review and
-              confirm your ride shortly.
-            </Text>
-          ) : (
-            <Text style={styles.finishedText}>
-              For now there is no fine on this ride. A staff member will review
+              A staff member will review
               and approve your return soon.
             </Text>
-          )}
         </View>
       )}
 

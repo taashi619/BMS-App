@@ -276,7 +276,7 @@ export default function HomeScreen({ navigation }) {
           />
         ) : (
           <FlatList
-            data={bicycles.slice(0, 4)}
+            data={bicycles.slice(0, 5)}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingBottom: 140 }}
             renderItem={({ item }) => (

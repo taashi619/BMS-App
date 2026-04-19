@@ -147,7 +147,7 @@ export default function SettingsScreen({ navigation }) {
         </View>
 
         {/* footer */}
-        <TouchableOpacity style={styles.privacyRow} onPress={handlePrivacy}>
+        {/* <TouchableOpacity style={styles.privacyRow} onPress={handlePrivacy}>
           <Ionicons
             name="shield-checkmark-outline"
             size={16}
@@ -156,7 +156,7 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.privacyText}>Privacy policy</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>Version 1.0.0</Text>
+        <Text style={styles.versionText}>Version 1.0.0</Text> */}
       </ScrollView>
     </Screen>
   );

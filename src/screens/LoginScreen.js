@@ -8,7 +8,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
 } from "react-native";
 import { COLORS } from "../constants/theme";
 import { useAuth } from "../context/AuthContext";
@@ -18,7 +18,7 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const { login, loading } = useAuth();
 
-  const handleLogin = async() => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Missing fields", "Please enter email and password");
       return;
@@ -47,21 +47,31 @@ export default function LoginScreen({ navigation }) {
           style={styles.heroBike}
           resizeMode="contain"
         />
-        <Text style={styles.appName}>Campus Bike</Text>
+
+        <View style={styles.logoRow}>
+          <Text style={styles.logoWordmark}>Uni Bike</Text>
+          <View style={styles.logoBadge}>
+            <Text style={styles.logoBadgeText}>Campus</Text>
+          </View>
+        </View>
+
+        <View style={styles.logoUnderline} />
+
         <Text style={styles.appTagline}>Smart bicycle booking for students</Text>
       </View>
+
       {/* form */}
       <View style={styles.form}>
         <Text style={styles.welcome}>Welcome back</Text>
-        <Text style={styles.welcomeSub}>
+        {/* <Text style={styles.welcomeSub}>
           Sign in with your university email to continue.
-        </Text>
+        </Text> */}
 
         <View style={styles.field}>
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
-            placeholder="you@student.uni.ac.uk"
+            placeholder="abc@uni.ac.uk"
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
@@ -79,20 +89,23 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
+        <TouchableOpacity style={styles.forgotRow} onPress={goToChangePassword}>
+          {/* <Text style={styles.forgotText}>Forgot password?</Text> */}
+        </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.forgotRow}
-          onPress={goToChangePassword}
+          style={styles.loginButton}
+          onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.forgotText}>Forgot password?</Text>
+          <Text style={styles.loginText}>
+            {loading ? "Logging in..." : "Log in"}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginText}>Log in</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.footerText}>
+        {/* <Text style={styles.footerText}>
           By continuing you agree to the campus bicycle policy.
-        </Text>
+        </Text> */}
       </View>
     </KeyboardAvoidingView>
   );
@@ -103,34 +116,66 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+
+  /* HERO / LOGO AREA */
   hero: {
-    height: 220,
+    height: 230,
     backgroundColor: COLORS.primary,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     paddingHorizontal: 24,
-    paddingTop: 40,
-    justifyContent: "center",
+    paddingTop: 90,
+    justifyContent: "flex-start",
     overflow: "hidden",
   },
   heroBike: {
     position: "absolute",
-    right: -60,
-    bottom: -10,
+    right: -40,
+    bottom: -20,
     width: 260,
     height: 260,
     opacity: 0.12,
   },
-  appName: {
-    fontSize: 26,
-    fontWeight: "700",
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logoWordmark: {
+    fontSize: 38,
+    fontFamily: "UniBikeScript", // make sure this custom font is loaded
     color: "#fff",
+    letterSpacing: 1,
+  },
+  logoBadge: {
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  logoBadgeText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.95)",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontWeight: "600",
+  },
+  logoUnderline: {
+    marginTop: 6,
+    width: 90,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.9)",
   },
   appTagline: {
-    marginTop: 6,
+    marginTop: 10,
     fontSize: 14,
     color: "rgba(255,255,255,0.9)",
   },
+
+  /* FORM AREA */
   form: {
     flex: 1,
     paddingHorizontal: 24,
@@ -140,6 +185,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     color: COLORS.textMain,
+    marginBottom:30
   },
   welcomeSub: {
     marginTop: 4,

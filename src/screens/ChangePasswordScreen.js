@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { COLORS } from "../constants/theme";
+  import Screen from "../components/Screenhy";
 
 export default function ChangePasswordScreen({ navigation }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -28,6 +29,7 @@ export default function ChangePasswordScreen({ navigation }) {
   };
 
   return (
+    <Screen>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -75,6 +77,7 @@ export default function ChangePasswordScreen({ navigation }) {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
