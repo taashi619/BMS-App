@@ -1,5 +1,15 @@
+import { NavigationContainer } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 import AppNavigator from "./src/navigation/AppNavigator";
-import "nativewind";
+import { AuthProvider } from "./src/context/AuthContext";
+
 export default function App() {
-  return <AppNavigator />;
+  return (
+     <AuthProvider>
+    <NavigationContainer>
+      <StatusBar style="dark" />
+      <AppNavigator />
+    </NavigationContainer>
+    </AuthProvider>
+  );
 }
